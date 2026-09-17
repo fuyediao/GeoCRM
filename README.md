@@ -6,6 +6,7 @@ Official download repository for GeoCRM releases.
 
 ## Download the Latest Version
 
+<!-- release-downloads:start -->
 The latest release is [GeoCRM 0.1.8-beta](https://github.com/fuyediao/GeoCRM/releases/tag/v0.1.8-beta), published on September 16, 2026.
 
 | Platform | Package | Download |
@@ -18,6 +19,7 @@ The latest release is [GeoCRM 0.1.8-beta](https://github.com/fuyediao/GeoCRM/rel
 | Linux (x86_64) | `.rpm` | [GeoCRM-0.1.8-beta.x86_64.rpm](https://github.com/fuyediao/GeoCRM/releases/download/v0.1.8-beta/GeoCRM-0.1.8-beta.x86_64.rpm) |
 
 See [all releases](https://github.com/fuyediao/GeoCRM/releases) for previous versions and release notes.
+<!-- release-downloads:end -->
 
 ### Planned Package Formats
 

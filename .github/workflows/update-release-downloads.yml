@@ -1,0 +1,116 @@
+name: Update release downloads
+
+on:
+  release:
+    types:
+      - published
+      - edited
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-release-downloads
+  cancel-in-progress: true
+
+jobs:
+  update-readme:
+    name: Update README
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update the generated download section
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const startMarker = '<!-- release-downloads:start -->';
+            const endMarker = '<!-- release-downloads:end -->';
+
+            const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
+            const { data: repository } = await github.rest.repos.get({ owner, repo });
+            const path = 'README.md';
+            const { data: readmeFile } = await github.rest.repos.getContent({
+              owner,
+              repo,
+              path,
+              ref: repository.default_branch,
+            });
+
+            if (Array.isArray(readmeFile) || readmeFile.type !== 'file' || !readmeFile.content) {
+              core.setFailed('README.md could not be loaded as a file.');
+              return;
+            }
+
+            const readme = Buffer.from(readmeFile.content, 'base64').toString('utf8');
+            const startIndex = readme.indexOf(startMarker);
+            const endIndex = readme.indexOf(endMarker);
+
+            if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+              core.setFailed('The release download markers are missing or invalid.');
+              return;
+            }
+
+            const rows = release.assets.map((asset) => {
+              const lowerName = asset.name.toLowerCase();
+              let platform = 'Other';
+
+              if (lowerName.endsWith('.exe') || lowerName.endsWith('.msix')) {
+                platform = 'Windows';
+              } else if (lowerName.endsWith('.dmg') || lowerName.endsWith('.pkg')) {
+                platform = 'macOS';
+              } else if (lowerName.endsWith('.appimage') || lowerName.endsWith('.deb') || lowerName.endsWith('.rpm')) {
+                platform = 'Linux';
+              } else if (lowerName.endsWith('.apk')) {
+                platform = 'Android';
+              }
+
+              if (lowerName.includes('arm64') || lowerName.includes('aarch64')) {
+                platform += ' (ARM64)';
+              } else if (lowerName.includes('x86_64') || lowerName.includes('amd64') || lowerName.endsWith('.exe') || lowerName.endsWith('.msix')) {
+                platform += ' (x86_64)';
+              } else if (platform === 'macOS') {
+                platform += ' (Intel)';
+              }
+
+              const extensionMatch = asset.name.match(/(\.appimage|\.msix|\.dmg|\.pkg|\.exe|\.deb|\.rpm|\.apk)$/i);
+              const packageFormat = extensionMatch ? extensionMatch[0] : 'file';
+              const safeName = asset.name.replaceAll('|', '&#124;');
+              return `| ${platform} | \`${packageFormat}\` | [${safeName}](${asset.browser_download_url}) |`;
+            });
+
+            const publishedDate = new Intl.DateTimeFormat('en-US', {
+              day: 'numeric',
+              month: 'long',
+              timeZone: 'UTC',
+              year: 'numeric',
+            }).format(new Date(release.published_at));
+            const releaseName = release.name || release.tag_name;
+            const generatedSection = [
+              startMarker,
+              `The latest release is [${releaseName}](${release.html_url}), published on ${publishedDate}.`,
+              '',
+              '| Platform | Package | Download |',
+              '| --- | --- | --- |',
+              ...rows,
+              '',
+              `See [all releases](https://github.com/${owner}/${repo}/releases) for previous versions and release notes.`,
+              endMarker,
+            ].join('\n');
+            const updatedReadme = `${readme.slice(0, startIndex)}${generatedSection}${readme.slice(endIndex + endMarker.length)}`;
+
+            if (updatedReadme === readme) {
+              core.info('README.md is already current.');
+              return;
+            }
+
+            await github.rest.repos.createOrUpdateFileContents({
+              owner,
+              repo,
+              path,
+              branch: repository.default_branch,
+              content: Buffer.from(updatedReadme).toString('base64'),
+              message: `docs: update downloads for ${release.tag_name}`,
+              sha: readmeFile.sha,
+            });
