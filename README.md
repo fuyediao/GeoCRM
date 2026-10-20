@@ -4,7 +4,15 @@ Official download repository for GeoCRM releases.
 
 > This repository is used to distribute installable application packages. Source code is not included.
 
-## Download the Latest Version
+## iOS and iPadOS Public Beta
+
+[Join the GeoCRM AI beta on TestFlight](https://testflight.apple.com/join/9mg92c6W)
+
+- Supports iPhone, iPhone Duo, and iPad.
+- Requires iOS 27.0.1 or later, or iPadOS 27.0.1 or later.
+- Install through TestFlight, then sign in with your GeoCRM account.
+
+## Download the Latest Desktop Version
 
 <!-- release-downloads:start -->
 The latest release is [GeoCRM 0.1.8-beta](https://github.com/fuyediao/GeoCRM/releases/tag/v0.1.8-beta), published on September 16, 2026.
